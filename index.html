@@ -344,6 +344,7 @@ td.pick{text-align:center;padding:0 4px}
 .check input:focus-visible ~ .cx{outline:2px solid var(--azul-escuro);outline-offset:2px}
 tr.nao-sel td:not(.pick){opacity:.42}
 .addline{display:flex;margin-top:var(--space-3)}
+.dica-rolagem{display:none}
 .fim{display:flex;align-items:center;justify-content:flex-end;gap:var(--space-4);flex-wrap:wrap;margin-top:var(--space-5)}
 .fim-nota{font-size:11px;font-weight:500;color:var(--muted)}
 .btn-enviar{
@@ -478,6 +479,16 @@ tr.meta-row:hover td{background:#F2F8FB}
 .modal-foot{display:flex;gap:8px;margin-top:var(--space-5)}
 .modal-foot .btn{flex:1}
 
+.pendencia{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  background:var(--surface);border-top:1.5px solid var(--line-strong);
+  box-shadow:0 -6px 20px rgba(1,30,60,.14);padding:var(--space-3) var(--space-5);
+}
+.pend-inner{max-width:210mm;margin:0 auto;display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.pend-inner .txt{flex:1;min-width:180px;font-size:12px;font-weight:600;color:var(--warning);line-height:1.4}
+.pendencia.feito .txt{color:var(--success)}
+#painel-cad{padding-bottom:96px}
+
 /* ---------- responsivo ---------- */
 @media (max-width:900px){
   .sheet{padding:0 var(--space-4);margin-top:var(--space-4)}
@@ -486,7 +497,20 @@ tr.meta-row:hover td{background:#F2F8FB}
   .s2,.s3,.s4{grid-column:span 6}
   .s5,.s6,.s7,.s8,.s9{grid-column:span 12}
   .row-q{flex:1 0 100%}
-  .scroll-x{display:block;overflow-x:auto}
+  .scroll-x{
+    display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;scrollbar-width:thin;
+  }
+  .scroll-x table{min-width:660px}
+  .scroll-x thead th:first-child,.scroll-x tbody td:first-child{min-width:190px}
+  .scroll-x thead th.sel-col,.scroll-x tbody td.pick{min-width:40px}
+  .scroll-x thead th.sel-col + th,.scroll-x tbody td.pick + td{min-width:190px}
+  .scroll-x::-webkit-scrollbar{height:8px}
+  .scroll-x::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:var(--r-pill)}
+  .dica-rolagem{
+    display:block;font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-top:var(--space-2);
+  }
 }
 @media (max-width:660px){
   .masthead .title{flex:1 0 100%;margin-top:var(--space-2)}
@@ -499,7 +523,8 @@ tr.meta-row:hover td{background:#F2F8FB}
 @page{size:A4;margin:9mm}
 @media print{
   body{background:#fff;font-size:11.5px}
-  .toolbar,.catbar,.subnav,.addline,.par-btn,.fim,.del,th.rm,td.rm{display:none!important}
+  .toolbar,.catbar,.subnav,.addline,.par-btn,.fim,.dica-rolagem,.pendencia,.del,th.rm,td.rm{display:none!important}
+  #painel-cad{padding-bottom:0}
   select.p-mod,.nomod{display:none!important}
   #osBody tr.nao-sel{display:none!important}
   th.sel-col,td.pick{display:none!important}
@@ -652,6 +677,7 @@ tr.meta-row:hover td{background:#F2F8FB}
         <tbody id="osBody"></tbody>
       </table>
     </div>
+    <span class="dica-rolagem">Arraste a tabela para o lado para ver todas as colunas</span>
     <div class="addline">
       <button type="button" class="btn btn-line" id="btnAddLivre">+ Outros serviços</button>
     </div>
@@ -736,6 +762,7 @@ tr.meta-row:hover td{background:#F2F8FB}
         <tbody id="catBody"></tbody>
       </table>
     </div>
+    <span class="dica-rolagem">Arraste a tabela para o lado para ver todas as colunas</span>
     <p class="vazio-msg" id="catVazio" hidden>Nenhum item encontrado com esse filtro.</p>
   </section>
 
@@ -762,6 +789,7 @@ tr.meta-row:hover td{background:#F2F8FB}
         <tbody id="urnaBody"></tbody>
       </table>
     </div>
+    <span class="dica-rolagem">Arraste a tabela para o lado para ver todas as colunas</span>
     <p class="vazio-msg" id="urnaVazio" hidden>Nenhuma urna cadastrada.</p>
   </section>
 
@@ -786,6 +814,7 @@ tr.meta-row:hover td{background:#F2F8FB}
         <tbody id="atenBody"></tbody>
       </table>
     </div>
+    <span class="dica-rolagem">Arraste a tabela para o lado para ver todas as colunas</span>
     <p class="vazio-msg" id="atenVazio" hidden>Nenhum atendente encontrado.</p>
   </section>
 
@@ -810,9 +839,18 @@ tr.meta-row:hover td{background:#F2F8FB}
         <tbody id="capBody"></tbody>
       </table>
     </div>
+    <span class="dica-rolagem">Arraste a tabela para o lado para ver todas as colunas</span>
     <p class="vazio-msg" id="capVazio" hidden>Nenhuma capela encontrada.</p>
   </section>
 
+
+  <div class="pendencia" id="barraPend" hidden>
+    <div class="pend-inner">
+      <span class="txt" id="pendTxt">Há alterações não confirmadas neste cadastro.</span>
+      <button type="button" class="btn btn-line" id="btnDescartar">Descartar</button>
+      <button type="button" class="btn btn-solid" id="btnConfirmar">Confirmar alterações</button>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -979,6 +1017,10 @@ tr.meta-row:hover td{background:#F2F8FB}
 
   function abrir(qual){
     var os=(qual==="os");
+    if(os && typeof haPendencia==="function" && haPendencia()){
+      if(confirm("Há alterações não confirmadas nos cadastros. Confirmar agora?\n\nCancelar descarta as alterações.")) fixarCadastro();
+      else restaurarCadastro();
+    }
     tabOS.setAttribute("aria-selected", os?"true":"false");
     tabCad.setAttribute("aria-selected", os?"false":"true");
     panOS.hidden=!os; panCad.hidden=os;
@@ -2097,12 +2139,69 @@ tr.meta-row:hover td{background:#F2F8FB}
     nota._t=setTimeout(function(){ nota.textContent=""; }, 4000);
   });
 
+
+  /* ---------- confirmação das alterações de cadastro ---------- */
+  var barraPend=document.getElementById("barraPend"),
+      pendTxt=document.getElementById("pendTxt");
+  var snapCad="", pendTimer=null, IGNORAR=["busca","filtroCat","buscaAten","buscaCap"];
+
+  function assinaturaCad(){
+    return JSON.stringify([catalogo, atendentes, capelas, cidadesExtra]);
+  }
+  function fixarCadastro(){
+    snapCad=assinaturaCad();
+    barraPend.hidden=true;
+    barraPend.classList.remove("feito");
+  }
+  function haPendencia(){ return assinaturaCad()!==snapCad; }
+  function revisarPendencia(){
+    clearTimeout(pendTimer);
+    pendTimer=setTimeout(function(){
+      var p=haPendencia();
+      if(p){
+        barraPend.classList.remove("feito");
+        pendTxt.textContent="Há alterações não confirmadas neste cadastro.";
+      }
+      barraPend.hidden=!p;
+    }, 150);
+  }
+  function restaurarCadastro(){
+    var d=JSON.parse(snapCad);
+    catalogo=d[0]; atendentes=d[1]; capelas=d[2]; cidadesExtra=d[3];
+    renderCat(); renderAten(); renderCap(); renderSelectsFicha(); renderOS();
+    fixarCadastro();
+  }
+
+  ["input","change"].forEach(function(ev){
+    panCad.addEventListener(ev, function(e){
+      if(e.target && IGNORAR.indexOf(e.target.id)>=0) return;
+      revisarPendencia();
+    });
+  });
+  panCad.addEventListener("click", function(e){
+    if(e.target.closest(".del,.mais,#btnAdd,#btnAddUrna,#btnAddAten,#btnAddCap,#btnImportCad")) revisarPendencia();
+  });
+
+  document.getElementById("btnDescartar").addEventListener("click", function(){
+    if(!confirm("Descartar as alterações feitas desde a última confirmação?")) return;
+    restaurarCadastro();
+  });
+  document.getElementById("btnConfirmar").addEventListener("click", function(){
+    fixarCadastro();
+    renderSelectsFicha(); renderOS();
+    barraPend.hidden=false;
+    barraPend.classList.add("feito");
+    pendTxt.textContent="Alterações confirmadas.";
+    setTimeout(function(){ if(!haPendencia()) barraPend.hidden=true; }, 2200);
+  });
+
   /* ===================== início ===================== */
   renderSelectsFicha();
   renderOS();
   renderCat();
   renderAten();
   renderCap();
+  fixarCadastro();
 })();
 </script>
 </body>
